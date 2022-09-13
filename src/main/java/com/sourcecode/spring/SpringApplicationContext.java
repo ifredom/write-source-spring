@@ -2,11 +2,13 @@ package com.sourcecode.spring;
 
 import com.sourcecode.spring.annotation.Component;
 import com.sourcecode.spring.annotation.ComponentScan;
+import com.sourcecode.spring.annotation.Scope;
 
 import java.io.File;
 import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 容器类
@@ -20,7 +22,12 @@ public class SpringApplicationContext {
 
     private Class configClass;
 
-    public SpringApplicationContext(Class configClass) {
+    /**
+     * 单例池
+     */
+    private ConcurrentHashMap<String, Object> singletonObjects = new ConcurrentHashMap<>();
+
+    public SpringApplicationContext(Class configClass) throws ClassNotFoundException {
         this.configClass = configClass;
 
         // 解析配置类
@@ -42,16 +49,25 @@ public class SpringApplicationContext {
             for (File listFile : Objects.requireNonNull(file.listFiles())) {
 
                 // listFile.getAbsolutePath()  获取的是操作系统中的完整绝对路径
-                // 由于 classLoader.loadClass(quotePath) 需要获取的是 com.xxx.xxx这样的引用地址，所以需要转换一下
-                String quotePath = resolveClassAbsolutePath(listFile.getAbsolutePath());
-
-                if (quotePath.endsWith(".class")) {
+                // 2.1 由于 classLoader.loadClass(quotePath) 需要获取的是 com.xxx.xxx这样的引用地址，所以需要转换一下
+                String absolutePath = listFile.getAbsolutePath();
+                if (absolutePath.endsWith(".class")) {
+                    String quotePath = resolveClassAbsolutePath(absolutePath);
                     try {
                         Class<?> aClass = classLoader.loadClass(quotePath);
 
                         if (aClass.isAnnotationPresent(Component.class)) {
-                            // 使用 @Component 注解装饰类：就表示希望将它交给Spring容器托管，它是一个bean对象
-                            System.out.println("here");
+                            // 2.2 使用 @Component 注解装饰类：就表示希望将它交给Spring容器托管，它是一个bean对象
+                            //  class  ---??--->  Bean
+                            // 2.3 在将class转换为我们制定的Bean类型时，由于Bean有两种类型：单例和原型。需要使用单例模式来确保Bean对象的唯一性
+                            // 因此，如何实现单例呢？ 可以创建一个@Scope注解来标识它是单例还是原型Bean类型，同时创建一个Map来保存所有的Bean。
+                            // Map {BeanName,BeanObject}  也就是常说的单例池
+
+                            // 2.4 判断是单例Bean还是原型Bean
+                            Scope scopeAnnotation = aClass.getAnnotation(Scope.class);
+                            System.out.println(scopeAnnotation);
+                            System.out.println(scopeAnnotation.value());
+
                         }
 
                     } catch (ClassNotFoundException e) {
@@ -77,6 +93,7 @@ public class SpringApplicationContext {
      * @return {@link String}
      */
     public String resolveClassAbsolutePath(String classPath) {
+
         return classPath.substring(classPath.indexOf("com"), classPath.indexOf(".class")).replace("\\", ".");
     }
 }

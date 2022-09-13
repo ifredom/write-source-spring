@@ -1,6 +1,7 @@
 package com.sourcecode.content.service;
 
 import com.sourcecode.spring.annotation.Component;
+import com.sourcecode.spring.annotation.Scope;
 
 /**
  * @Author ifredomvip@gmail.com
@@ -9,5 +10,6 @@ import com.sourcecode.spring.annotation.Component;
  * @Description
  **/
 @Component("userService")
+@Scope("prototype")
 public class UserService {
 }

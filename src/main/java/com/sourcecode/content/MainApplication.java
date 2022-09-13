@@ -11,7 +11,12 @@ import com.sourcecode.spring.SpringApplicationContext;
 public class MainApplication {
     public static void main(String[] args) {
         AppConfig springConfig = new AppConfig();
-        SpringApplicationContext app = new SpringApplicationContext(AppConfig.class);
+        SpringApplicationContext app = null;
+        try {
+            app = new SpringApplicationContext(AppConfig.class);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
 
         Object userService = app.getBean("userService");
         System.out.println(userService);
