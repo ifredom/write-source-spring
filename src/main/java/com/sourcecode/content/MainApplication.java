@@ -8,7 +8,7 @@ import com.sourcecode.spring.SpringApplicationContext;
  * @Version 1.0.0
  * @Description
  **/
-public class MainContainer {
+public class MainApplication {
     public static void main(String[] args) {
         AppConfig springConfig = new AppConfig();
         SpringApplicationContext app = new SpringApplicationContext(AppConfig.class);
