@@ -6,6 +6,7 @@ import com.sourcecode.spring.annotation.ComponentScan;
 import com.sourcecode.spring.annotation.Scope;
 import com.sourcecode.spring.bean.BeanDefinition;
 import com.sourcecode.spring.bean.BeanNameAware;
+import com.sourcecode.spring.bean.BeanPostProcessor;
 import com.sourcecode.spring.bean.InitializingBean;
 import com.sourcecode.spring.utils.Asset;
 
@@ -13,6 +14,8 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -38,6 +41,8 @@ public class SpringApplicationContext {
      */
     private ConcurrentHashMap<String, Object> singletonMap = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>();
+
+    private List<BeanPostProcessor> beanPostProcessorList = new ArrayList<>();
 
     public SpringApplicationContext(Class<?> primarySource, Class<?> configClass) {
         this.configClass = configClass;
@@ -97,12 +102,22 @@ public class SpringApplicationContext {
                 ((BeanNameAware) instance).setBeanName(beanName);
             }
 
+            // 初始化前，调用前置处理器（Hook）
+            for (BeanPostProcessor beanPostProcessor : beanPostProcessorList) {
+                instance = beanPostProcessor.postProcessBeforeInitialization(instance, beanName);
+            }
+
+            // 初始化
             if (instance instanceof InitializingBean) {
                 try {
                     ((InitializingBean) instance).afterPropertiesSet();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+            }
+            // 初始化后，调用后置处理器（Hook）
+            for (BeanPostProcessor beanPostProcessor : beanPostProcessorList) {
+                instance = beanPostProcessor.postProcessAfterInitialization(instance, beanName);
             }
 
         } catch (InstantiationException | InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
@@ -142,6 +157,14 @@ public class SpringApplicationContext {
                         Class<?> aClass = classLoader.loadClass(quotePath);
 
                         if (aClass.isAnnotationPresent(Component.class)) {
+
+                            // 初始化前，储存实现了前置处理器的Bean对象
+                            if (BeanPostProcessor.class.isAssignableFrom(aClass)) {
+                                BeanPostProcessor instance = (BeanPostProcessor) aClass.getDeclaredConstructor().newInstance();
+                                beanPostProcessorList.add(instance);
+                            }
+
+
                             // 2.2 使用 @Component 注解装饰类：就表示希望将它交给Spring容器托管，它是一个bean对象
                             //  class  ---??--->  Bean
                             // 2.3 在将class转换为我们制定的Bean类型时，由于Bean有两种类型：单例和原型。需要使用单例模式来确保Bean对象的唯一性
@@ -168,7 +191,7 @@ public class SpringApplicationContext {
 
                         }
 
-                    } catch (ClassNotFoundException e) {
+                    } catch (ClassNotFoundException | InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException e) {
                         e.printStackTrace();
                     }
                 }

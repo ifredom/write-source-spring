@@ -14,7 +14,7 @@ import com.sourcecode.spring.exception.BeansException;
  * @Description
  **/
 @Component("userService")
-@Scope("prototype")
+//@Scope("prototype")
 public class UserService implements BeanNameAware, BeanPostProcessor {
 
     @Autowired
@@ -45,7 +45,6 @@ public class UserService implements BeanNameAware, BeanPostProcessor {
 
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-
 
         if ("userService".equals(beanName)) {
             System.out.println("后置postProcess执行===");
