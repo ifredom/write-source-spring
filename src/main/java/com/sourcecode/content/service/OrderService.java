@@ -1,7 +1,9 @@
 package com.sourcecode.content.service;
 
+import com.sourcecode.spring.annotation.Autowired;
 import com.sourcecode.spring.annotation.Component;
 import com.sourcecode.spring.annotation.Scope;
+import com.sourcecode.spring.bean.InitializingBean;
 
 /**
  * @Author ifredomvip@gmail.com
@@ -10,6 +12,14 @@ import com.sourcecode.spring.annotation.Scope;
  * @Description
  **/
 @Component("orderService")
-@Scope("singleton")
-public class OrderService {
+//@Scope("prototype")
+public class OrderService implements InitializingBean {
+
+//    @Autowired
+//    private UserService userService;
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        System.out.println("初始化  === afterPropertiesSet ===");
+    }
 }

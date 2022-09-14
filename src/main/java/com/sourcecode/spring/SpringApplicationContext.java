@@ -5,15 +5,14 @@ import com.sourcecode.spring.annotation.Component;
 import com.sourcecode.spring.annotation.ComponentScan;
 import com.sourcecode.spring.annotation.Scope;
 import com.sourcecode.spring.bean.BeanDefinition;
-import com.sourcecode.spring.config.ConfigurableApplicationContext;
+import com.sourcecode.spring.bean.BeanNameAware;
+import com.sourcecode.spring.bean.InitializingBean;
 import com.sourcecode.spring.utils.Asset;
 
 import java.io.File;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
-import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -45,11 +44,11 @@ public class SpringApplicationContext {
 
         scan(configClass);
 
-
+        // 实例化所有的单例Bean
         for (String beanName : beanDefinitionMap.keySet()) {
             BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
             if ("singleton".equals(beanDefinition.getScope())) {
-                Object beanInstance = createBean(beanDefinition);
+                Object beanInstance = createBean(beanName, beanDefinition);
                 singletonMap.put(beanName, beanInstance);
             }
         }
@@ -69,7 +68,13 @@ public class SpringApplicationContext {
         return new SpringApplicationContext(primarySource, configClass);
     }
 
-    public Object createBean(final BeanDefinition beanDefinition) {
+    /**
+     * 创建bean
+     *
+     * @param beanDefinition bean定义
+     * @return {@link Object}
+     */
+    public Object createBean(String beanName, final BeanDefinition beanDefinition) {
         Class<?> clazz = beanDefinition.getClazz();
         Object instance = null;
 
@@ -87,6 +92,18 @@ public class SpringApplicationContext {
                 }
             }
 
+            // 实现BeanName 感知
+            if (instance instanceof BeanNameAware) {
+                ((BeanNameAware) instance).setBeanName(beanName);
+            }
+
+            if (instance instanceof InitializingBean) {
+                try {
+                    ((InitializingBean) instance).afterPropertiesSet();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
 
         } catch (InstantiationException | InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
             e.printStackTrace();
@@ -170,35 +187,7 @@ public class SpringApplicationContext {
                 return singletonMap.get(beanName);
             } else {
                 // 创建一个新Bean对象
-                return createBean(beanDefinition);
-            }
-
-        } else {
-            // 没有这个beanName
-            throw new NullPointerException();
-        }
-    }
-
-    /**
-     * 重载，
-     * 提供第二个可传入参数，避免框架使用者执行强转，改为框架内部执行转换
-     *
-     * @param beanName     bean名字
-     * @param requiredType 所需类型
-     * @return {@link T}
-     */
-    public <T> T getBean(String beanName, Class<?> requiredType) {
-
-        if (beanDefinitionMap.containsKey(beanName)) {
-            BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
-
-            String scope = beanDefinition.getScope();
-
-            if ("singleton".equals(scope)) {
-                return (T) singletonMap.get(beanName);
-            } else {
-                // 创建一个新Bean对象
-                return (T) createBean(beanDefinition);
+                return createBean(beanName, beanDefinition);
             }
 
         } else {
