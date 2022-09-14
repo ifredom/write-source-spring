@@ -1,5 +1,6 @@
 package com.sourcecode.content;
 
+import com.sourcecode.content.service.UserService;
 import com.sourcecode.spring.SpringApplicationContext;
 
 /**
@@ -12,15 +13,16 @@ public class MainApplication {
     public static void main(String[] args) {
         AppConfig springConfig = new AppConfig();
 
-        SpringApplicationContext app = null;
-        app = new SpringApplicationContext(AppConfig.class);
+        SpringApplicationContext app = SpringApplicationContext.run(MainApplication.class, AppConfig.class);
 
         Object userService = app.getBean("userService");
-        Object userService1 = app.getBean("userService");
-        Object userService2 = app.getBean("userService");
+        UserService userService1 = app.getBean("userService", UserService.class);
+        UserService userService2 = (UserService) app.getBean("userService");
 
         System.out.println(userService);
         System.out.println(userService1);
         System.out.println(userService2);
+
+        userService1.test();
     }
 }

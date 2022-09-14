@@ -1,14 +1,19 @@
 package com.sourcecode.spring;
 
+import com.sourcecode.spring.annotation.Autowired;
 import com.sourcecode.spring.annotation.Component;
 import com.sourcecode.spring.annotation.ComponentScan;
 import com.sourcecode.spring.annotation.Scope;
 import com.sourcecode.spring.bean.BeanDefinition;
+import com.sourcecode.spring.config.ConfigurableApplicationContext;
+import com.sourcecode.spring.utils.Asset;
 
 import java.io.File;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -22,7 +27,12 @@ import java.util.concurrent.ConcurrentHashMap;
  **/
 public class SpringApplicationContext {
 
-    private Class configClass;
+    private static SpringApplicationContext SpringApplication;
+
+    /**
+     * 配置类
+     */
+    private Class<?> configClass;
 
     /**
      * 单例池
@@ -30,7 +40,7 @@ public class SpringApplicationContext {
     private ConcurrentHashMap<String, Object> singletonMap = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>();
 
-    public SpringApplicationContext(Class configClass) {
+    public SpringApplicationContext(Class<?> primarySource, Class<?> configClass) {
         this.configClass = configClass;
 
         scan(configClass);
@@ -46,17 +56,41 @@ public class SpringApplicationContext {
 
     }
 
-    public Object createBean(final BeanDefinition beanDefinition) {
-        Class clazz = beanDefinition.getClazz();
-        Object instance = null;
+    /**
+     * 仿照spring的静态run方法
+     * spring源码中是通过静态run方法调用实例run方法。本demo简化了
+     *
+     * @param primarySource 主要来源
+     * @param configClass   配置类
+     * @param args          arg参数
+     * @return {@link Object}
+     */
+    public static SpringApplicationContext run(Class<?> primarySource, Class<?> configClass, String... args) {
+        return new SpringApplicationContext(primarySource, configClass);
+    }
 
+    public Object createBean(final BeanDefinition beanDefinition) {
+        Class<?> clazz = beanDefinition.getClazz();
+        Object instance = null;
 
         try {
             instance = clazz.getDeclaredConstructor().newInstance();
+
+            // 依赖注入 实现
+            // 将bean中使用 Autowired 标记的属性进行赋值
+
+            for (Field field : clazz.getDeclaredFields()) {
+                if (field.isAnnotationPresent(Autowired.class)) {
+                    Object bean = getBean(field.getName());
+                    field.setAccessible(true);
+                    field.set(instance, bean);
+                }
+            }
+
+
         } catch (InstantiationException | InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
             e.printStackTrace();
         }
-
 
         return instance;
     }
@@ -67,10 +101,10 @@ public class SpringApplicationContext {
      *
      * @param configClass 配置类
      */
-    private void scan(Class configClass) {
+    private void scan(Class<?> configClass) {
 
         // 1. 传递来的类，是都被扫描注解标记
-        ComponentScan componentScanAnnotation = (ComponentScan) configClass.getAnnotation(ComponentScan.class);
+        ComponentScan componentScanAnnotation = configClass.getAnnotation(ComponentScan.class);
         String scanPath = componentScanAnnotation.value();
 
         // 2. 获取扫扫描路径后，准备扫描。一个包下有许多的类，我们框架关心的是被指定注解标记的类（@Component），才会被扫描
@@ -112,6 +146,7 @@ public class SpringApplicationContext {
                             } else {
                                 beanDefinition.setScope("singleton");
                             }
+                            // 存储Bean
                             beanDefinitionMap.put(beanName, beanDefinition);
 
                         }
@@ -126,7 +161,7 @@ public class SpringApplicationContext {
     }
 
     public Object getBean(String beanName) {
-
+        Asset.notNull(beanName);
         if (beanDefinitionMap.containsKey(beanName)) {
             BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
 
@@ -136,6 +171,34 @@ public class SpringApplicationContext {
             } else {
                 // 创建一个新Bean对象
                 return createBean(beanDefinition);
+            }
+
+        } else {
+            // 没有这个beanName
+            throw new NullPointerException();
+        }
+    }
+
+    /**
+     * 重载，
+     * 提供第二个可传入参数，避免框架使用者执行强转，改为框架内部执行转换
+     *
+     * @param beanName     bean名字
+     * @param requiredType 所需类型
+     * @return {@link T}
+     */
+    public <T> T getBean(String beanName, Class<?> requiredType) {
+
+        if (beanDefinitionMap.containsKey(beanName)) {
+            BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
+
+            String scope = beanDefinition.getScope();
+
+            if ("singleton".equals(scope)) {
+                return (T) singletonMap.get(beanName);
+            } else {
+                // 创建一个新Bean对象
+                return (T) createBean(beanDefinition);
             }
 
         } else {
