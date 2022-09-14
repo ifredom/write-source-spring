@@ -10,6 +10,6 @@ import com.sourcecode.spring.annotation.Scope;
  * @Description
  **/
 @Component("userService")
-@Scope("prototype")
+//@Scope("prototype")
 public class UserService {
 }
