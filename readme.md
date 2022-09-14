@@ -19,9 +19,15 @@
 11. Bean初始化方式: 在spring源码中提供了两种Bean初始化方式，这里实现其中之一 `initializingBean`
 12. AOP载入
 
-### 分布参考阅读
+### 步骤参考阅读
 
 - [步骤6 中的scope](https://waylau.com/custom-scope-in-spring/#:~:text=%E5%A4%A7%E5%AE%B6%E5%AF%B9%E4%BA%8E%20Spring%20%E7%9A%84%20scope%20%E5%BA%94%E8%AF%A5%E9%83%BD%E4%B8%8D%E4%BC%9A%E9%BB%98%E8%AE%A4%E3%80%82%20%E6%89%80%E8%B0%93%20scope%EF%BC%8C%E5%AD%97%E9%9D%A2%E7%90%86%E8%A7%A3%E5%B0%B1%E6%98%AF%E2%80%9C%E4%BD%9C%E7%94%A8%E5%9F%9F%E2%80%9D%E3%80%81%E2%80%9C%E8%8C%83%E5%9B%B4%E2%80%9D%EF%BC%8C%E5%A6%82%E6%9E%9C%E4%B8%80%E4%B8%AA%20bean,%E7%9A%84%20scope%20%E9%85%8D%E7%BD%AE%E4%B8%BA%20singleton%EF%BC%8C%E5%88%99%E4%BB%8E%E5%AE%B9%E5%99%A8%E4%B8%AD%E8%8E%B7%E5%8F%96%20bean%20%E8%BF%94%E5%9B%9E%E7%9A%84%E5%AF%B9%E8%B1%A1%E9%83%BD%E6%98%AF%E7%9B%B8%E5%90%8C%E7%9A%84%EF%BC%9B%E5%A6%82%E6%9E%9C%20scope%20%E9%85%8D%E7%BD%AE%E4%B8%BAprototype%EF%BC%8C%E5%88%99%E6%AF%8F%E6%AC%A1%E8%BF%94%E5%9B%9E%E7%9A%84%E5%AF%B9%E8%B1%A1%E9%83%BD%E4%B8%8D%E5%90%8C%E3%80%82)
   . 对于scope的单例和原型类型，我们可以简单采用enum枚举类型，也可以尝试像spring源码中定义 `org.springframework.beans.factory.config.Scope`接口
 - [步骤8 创建Bean实例 java clazz.getDeclaredConstructor().newInstance() 和 class.newInstance() 的区别](https://blog.csdn.net/Adeluoo/article/details/124026775)
 - [步骤10 InitializingBean作用](https://www.cnblogs.com/liaowenhui/p/16676819.html#:~:text=Initiali,%E9%83%BD%E4%BC%9A%E6%89%A7%E8%A1%8C%E8%AF%A5%E6%96%B9%E6%B3%95%E3%80%82)
+
+
+
+### 参考阅读
+
+- [spring bean 实现](https://juejin.cn/post/6844904008461582350#heading-9)
