@@ -34,3 +34,4 @@
 - [步骤8 创建Bean实例 java clazz.getDeclaredConstructor().newInstance() 和 class.newInstance() 的区别](https://blog.csdn.net/Adeluoo/article/details/124026775)
 - [步骤10 InitializingBean作用](https://www.cnblogs.com/liaowenhui/p/16676819.html#:~:text=Initiali,%E9%83%BD%E4%BC%9A%E6%89%A7%E8%A1%8C%E8%AF%A5%E6%96%B9%E6%B3%95%E3%80%82)
 - [步骤12 jdk-动态代理](https://zhuanlan.zhihu.com/p/347141071)
+- [其他源码实现](https://github.com/mafei007even/Spring-impl/blob/06ab6fdf762c7506e65068d3fe18c0e09c539a79/src/com/mafei/spring/MaFeiApplicationContext.java#L153)

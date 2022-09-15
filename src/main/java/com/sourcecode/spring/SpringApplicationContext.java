@@ -10,6 +10,7 @@ import com.sourcecode.spring.bean.BeanPostProcessor;
 import com.sourcecode.spring.bean.InitializingBean;
 import com.sourcecode.spring.utils.Asset;
 
+import java.beans.Introspector;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -147,7 +148,7 @@ public class SpringApplicationContext {
         // 2. 获取扫扫描路径后，准备扫描。一个包下有许多的类，我们框架关心的是被指定注解标记的类（@Component），才会被扫描
         // 如何获取一个包下面的java类？使用类加载器
 
-        ClassLoader classLoader = SpringApplicationContext.class.getClassLoader();
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         URL resource = classLoader.getResource("com/sourcecode/content/service");
         assert resource != null;
         File file = new File(resource.getFile());
@@ -180,6 +181,12 @@ public class SpringApplicationContext {
                             // 2.4 判断是单例Bean还是原型Bean
                             Component componentAnnotation = aClass.getDeclaredAnnotation(Component.class);
                             String beanName = componentAnnotation.value();
+
+
+                            if("".equals(beanName)){
+                                beanName = Introspector.decapitalize(aClass.getSimpleName());
+                            }
+
 
                             BeanDefinition beanDefinition = new BeanDefinition();
                             beanDefinition.setClazz(aClass);
