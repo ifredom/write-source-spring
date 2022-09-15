@@ -1,7 +1,9 @@
 package com.sourcecode.content;
 
 import com.sourcecode.content.service.UserService;
+import com.sourcecode.content.service.UserServiceImpl;
 import com.sourcecode.spring.SpringApplicationContext;
+import com.sourcecode.spring.bean.BeanNameAware;
 
 /**
  * @Author ifredomvip@gmail.com
@@ -24,5 +26,9 @@ public class MainApplication {
         System.out.println(userService2);
 
         userService1.test();
+
+        System.out.println("=================");
+
+
     }
 }

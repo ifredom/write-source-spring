@@ -49,7 +49,13 @@ public class SpringApplicationContext {
 
         scan(configClass);
 
-        // 实例化所有的单例Bean
+        init();
+    }
+
+    /**
+     * 初始化:实例化所有的单例Bean
+     */
+    private void init() {
         for (String beanName : beanDefinitionMap.keySet()) {
             BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
             if ("singleton".equals(beanDefinition.getScope())) {
@@ -57,7 +63,6 @@ public class SpringApplicationContext {
                 singletonMap.put(beanName, beanInstance);
             }
         }
-
     }
 
     /**
@@ -107,7 +112,7 @@ public class SpringApplicationContext {
                 instance = beanPostProcessor.postProcessBeforeInitialization(instance, beanName);
             }
 
-            // 初始化
+            // 初始化属性
             if (instance instanceof InitializingBean) {
                 try {
                     ((InitializingBean) instance).afterPropertiesSet();

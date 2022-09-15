@@ -17,7 +17,8 @@
 9. 依赖注入实现。所有的Bean已被扫描并存储在`beanDefinitionMap`中，并为所有的单例Bean创建了实例，所有的原型Bean仅仅是存储了其Bean数据结构`beanDefinition`
 10. 容器感知beanNameAware： 对于某一个Bean本身(userService)而言，使用者是不知道关于容器的信息。实现 beanNameAware容器感知
 11. Bean初始化方式: 在spring源码中提供了两种Bean初始化方式，这里实现其中之一 `initializingBean`
-12. AOP载入
+12. AOP实现：通过JAVA-JDK 动态代理实现,即实现AOP切面，实现位置位于 `BeanPostProcessor`.需要注意 代理是对 某一个具体对象的某种行为进行代理，所以必须被代理的对象必须至少实现一个接口
+
 
 ### 分布参考阅读
 
@@ -25,3 +26,4 @@
   . 对于scope的单例和原型类型，我们可以简单采用enum枚举类型，也可以尝试像spring源码中定义 `org.springframework.beans.factory.config.Scope`接口
 - [步骤8 创建Bean实例 java clazz.getDeclaredConstructor().newInstance() 和 class.newInstance() 的区别](https://blog.csdn.net/Adeluoo/article/details/124026775)
 - [步骤10 InitializingBean作用](https://www.cnblogs.com/liaowenhui/p/16676819.html#:~:text=Initiali,%E9%83%BD%E4%BC%9A%E6%89%A7%E8%A1%8C%E8%AF%A5%E6%96%B9%E6%B3%95%E3%80%82)
+- [步骤12 jdk-动态代理](https://zhuanlan.zhihu.com/p/347141071)
