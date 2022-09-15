@@ -1,5 +1,8 @@
 # spring source mini
 
+- [实现源码]()
+- [视频](https://www.bilibili.com/video/BV1r5411A7hZ)
+
 ## 步骤
 
 整体步骤包含两部分内容：默认为spring框架内容，使用[应用]标注的表示：这一步骤是属于APP应用内部的
@@ -18,6 +21,10 @@
 10. 容器感知beanNameAware： 对于某一个Bean本身(userService)而言，使用者是不知道关于容器的信息。实现 beanNameAware容器感知
 11. Bean初始化方式: 在spring源码中提供了两种Bean初始化方式，这里实现其中之一 `initializingBean`
 12. AOP实现：通过JAVA-JDK 动态代理实现,即实现AOP切面，实现位置位于 `BeanPostProcessor`.需要注意 代理是对 某一个具体对象的某种行为进行代理，所以必须被代理的对象必须至少实现一个接口
+
+## 困难与挑战
+
+在书写源码的过程中，遇到不清晰的知识点，记录在文件夹 `source-ex` 中
 
 
 ### 分布参考阅读

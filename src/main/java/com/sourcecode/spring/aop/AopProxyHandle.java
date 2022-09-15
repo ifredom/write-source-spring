@@ -5,6 +5,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
 /**
+ * 动态代理通用模板
  * @Author ifredomvip@gmail.com
  * @Date 2022/9/15 15:03
  * @Version 1.0.0
