@@ -15,8 +15,11 @@ import com.sourcecode.spring.bean.InitializingBean;
 //@Scope("prototype")
 public class OrderService implements InitializingBean {
 
+    private String var1;
+
 //    @Autowired
 //    private UserService userService;
+
 
     @Override
     public void afterPropertiesSet() throws Exception {

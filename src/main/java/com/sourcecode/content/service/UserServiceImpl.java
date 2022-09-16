@@ -23,10 +23,7 @@ public class UserServiceImpl implements UserService, BeanNameAware, BeanPostProc
 
     @Override
     public void test() {
-        System.out.println("进入 test 方法体 开始执行");
-        System.out.println(orderService);
         System.out.println(beanName);
-        System.out.println("进入 test 方法体 结束执行");
     }
 
     @Override

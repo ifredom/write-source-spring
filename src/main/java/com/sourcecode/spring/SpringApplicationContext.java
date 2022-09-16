@@ -105,11 +105,9 @@ public class SpringApplicationContext {
         Object instance = null;
 
         try {
-            instance = clazz.getDeclaredConstructor().newInstance();
+            instance = createBeanInstance(beanDefinition);
 
-            // 依赖注入 实现
-            // 将bean中使用 Autowired 标记的属性进行赋值
-
+            // 依赖注入 【将bean中使用 Autowired 标记的属性进行赋值】
             for (Field field : clazz.getDeclaredFields()) {
                 if (field.isAnnotationPresent(Autowired.class)) {
                     Object bean = getBean(field.getName());
@@ -120,10 +118,10 @@ public class SpringApplicationContext {
 
             instance = initializeBean(beanName, instance);
 
-
-        } catch (InstantiationException | InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
+
 
         return instance;
     }
@@ -223,6 +221,13 @@ public class SpringApplicationContext {
     }
 
 
+    /**
+     * 初始化bean
+     *
+     * @param beanName bean名字
+     * @param instance 实例
+     * @return {@link Object}
+     */
     private Object initializeBean(String beanName, Object instance) {
         // 实现BeanName 感知
         if (instance instanceof BeanNameAware) {
@@ -250,6 +255,23 @@ public class SpringApplicationContext {
         return instance;
     }
 
+
+    /**
+     * 创建bean实例
+     *
+     * @param beanDefinition bean定义
+     * @return {@link Object}
+     * @throws NoSuchMethodException     没有这样方法异常
+     * @throws InvocationTargetException 调用目标异常
+     * @throws InstantiationException    实例化异常
+     * @throws IllegalAccessException    非法访问异常
+     */
+    private Object createBeanInstance(BeanDefinition beanDefinition) throws Throwable {
+        Class<?> clazz = beanDefinition.getClazz();
+        Object instance = null;
+        instance = clazz.getDeclaredConstructor().newInstance();
+        return instance;
+    }
 
     public Object getBean(String beanName) {
         Asset.notNull(beanName);
