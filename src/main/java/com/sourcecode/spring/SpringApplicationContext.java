@@ -8,13 +8,12 @@ import com.sourcecode.spring.bean.BeanDefinition;
 import com.sourcecode.spring.bean.BeanNameAware;
 import com.sourcecode.spring.bean.BeanPostProcessor;
 import com.sourcecode.spring.bean.InitializingBean;
+import com.sourcecode.spring.interfaces.ObjectFactory;
 import com.sourcecode.spring.utils.Asset;
 
-import javax.naming.spi.ObjectFactory;
 import java.beans.Introspector;
 import java.io.File;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.*;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -229,17 +228,17 @@ public class SpringApplicationContext {
      * @return {@link Object}
      */
     private Object initializeBean(String beanName, Object instance) {
-        // 实现BeanName 感知
+        // 0️⃣ 容器感知：各种 Aware 回调
         if (instance instanceof BeanNameAware) {
             ((BeanNameAware) instance).setBeanName(beanName);
         }
 
-        // 初始化前，调用前置处理器（Hook）
+        // 1️⃣ 初始化前，调用前置处理器（Hook）
         for (BeanPostProcessor beanPostProcessor : beanPostProcessorList) {
             instance = beanPostProcessor.postProcessBeforeInitialization(instance, beanName);
         }
 
-        // 初始化属性
+        // 2️⃣ 初始化属性
         if (instance instanceof InitializingBean) {
             try {
                 ((InitializingBean) instance).afterPropertiesSet();
@@ -247,7 +246,7 @@ public class SpringApplicationContext {
                 e.printStackTrace();
             }
         }
-        // 初始化后，调用后置处理器（Hook）
+        // 3️⃣ 初始化后，调用后置处理器（Hook）
         for (BeanPostProcessor beanPostProcessor : beanPostProcessorList) {
             instance = beanPostProcessor.postProcessAfterInitialization(instance, beanName);
         }
@@ -258,6 +257,8 @@ public class SpringApplicationContext {
 
     /**
      * 创建bean实例
+     * <p>
+     * !支持无参构造 和 有参构造
      *
      * @param beanDefinition bean定义
      * @return {@link Object}
@@ -268,9 +269,33 @@ public class SpringApplicationContext {
      */
     private Object createBeanInstance(BeanDefinition beanDefinition) throws Throwable {
         Class<?> clazz = beanDefinition.getClazz();
-        Object instance = null;
-        instance = clazz.getDeclaredConstructor().newInstance();
-        return instance;
+
+        Constructor<?>[] constructors = clazz.getConstructors();
+
+        // 默认使用无参构造函数，创建实例对象
+        for (Constructor<?> constructor : clazz.getConstructors()) {
+            if (constructor.getParameterCount() == 0) {
+                return constructor.newInstance();
+            }
+        }
+
+        // 有参构造函数(Map结构无序，所以是随机得)
+        Constructor<?> constructor = constructors[0];
+        Object[] args = new Object[constructor.getParameterCount()];
+        Parameter[] parameters = constructor.getParameters();
+
+        for (int i = 0; i < parameters.length; i++) {
+            Parameter parameter = parameters[i];
+            Object arg = null;
+
+
+            // 被依赖注入标记得属性，从 beanDefinitionMap中获取
+            if (parameter.getClass().isAnnotationPresent(Autowired.class)) {
+                arg = getBean(parameter.getName());
+            }
+            args[i] = arg;
+        }
+        return constructor.newInstance(args);
     }
 
     public Object getBean(String beanName) {
