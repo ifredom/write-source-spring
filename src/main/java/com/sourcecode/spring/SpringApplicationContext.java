@@ -10,14 +10,13 @@ import com.sourcecode.spring.bean.BeanPostProcessor;
 import com.sourcecode.spring.bean.InitializingBean;
 import com.sourcecode.spring.utils.Asset;
 
+import javax.naming.spi.ObjectFactory;
 import java.beans.Introspector;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -37,10 +36,22 @@ public class SpringApplicationContext {
      */
     private Class<?> configClass;
 
+
     /**
-     * 单例池
-     */
-    private ConcurrentHashMap<String, Object> singletonMap = new ConcurrentHashMap<>();
+     * 单例池 一级缓存：用于存放完全初始化好的 bean
+     **/
+    private ConcurrentHashMap<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
+
+    /**
+     * 二级缓存：存放原始的 bean 对象（尚未填充属性），用于解决循环依赖
+     **/
+    private Map<String, Object> earlySingletonObjects = new HashMap<>(16);
+
+    /**
+     * 三级级缓存：存放 bean 工厂对象，用于解决循环依赖
+     **/
+    private Map<String, ObjectFactory> singletonFactories = new HashMap<>(16);
+
     private ConcurrentHashMap<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>();
 
     private List<BeanPostProcessor> beanPostProcessorList = new ArrayList<>();
@@ -49,6 +60,8 @@ public class SpringApplicationContext {
         this.configClass = configClass;
 
         scan(configClass);
+
+        registerBeanPostProcessors();
 
         init();
     }
@@ -61,7 +74,7 @@ public class SpringApplicationContext {
             BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
             if ("singleton".equals(beanDefinition.getScope())) {
                 Object beanInstance = createBean(beanName, beanDefinition);
-                singletonMap.put(beanName, beanInstance);
+                singletonObjects.put(beanName, beanInstance);
             }
         }
     }
@@ -164,12 +177,6 @@ public class SpringApplicationContext {
 
                         if (aClass.isAnnotationPresent(Component.class)) {
 
-                            // 初始化前，储存实现了前置处理器的Bean对象
-                            if (BeanPostProcessor.class.isAssignableFrom(aClass)) {
-                                BeanPostProcessor instance = (BeanPostProcessor) aClass.getDeclaredConstructor().newInstance();
-                                beanPostProcessorList.add(instance);
-                            }
-
 
                             // 2.2 使用 @Component 注解装饰类：就表示希望将它交给Spring容器托管，它是一个bean对象
                             //  class  ---??--->  Bean
@@ -183,7 +190,7 @@ public class SpringApplicationContext {
                             String beanName = componentAnnotation.value();
 
 
-                            if("".equals(beanName)){
+                            if ("".equals(beanName)) {
                                 beanName = Introspector.decapitalize(aClass.getSimpleName());
                             }
 
@@ -203,13 +210,34 @@ public class SpringApplicationContext {
 
                         }
 
-                    } catch (ClassNotFoundException | InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException e) {
+                    } catch (ClassNotFoundException e) {
                         e.printStackTrace();
                     }
                 }
 
             }
         }
+    }
+
+    /**
+     * 注册 Bean前/后置处理器
+     * 由视频中的位置提取了出来
+     */
+    private void registerBeanPostProcessors() {
+        // 初始化前，储存实现了前置处理器的Bean对象
+        this.beanDefinitionMap.entrySet()
+                .stream()
+                .filter((entry) -> BeanPostProcessor.class.isAssignableFrom(entry.getValue().getClazz()))
+                .forEach((entry) -> {
+                    BeanPostProcessor instance = (BeanPostProcessor) getBean(entry.getKey());
+                    beanPostProcessorList.add(instance);
+                });
+
+        // 原写法
+//        if (BeanPostProcessor.class.isAssignableFrom(aClass)) {
+//            BeanPostProcessor instance = (BeanPostProcessor) aClass.getDeclaredConstructor().newInstance();
+//            beanPostProcessorList.add(instance);
+//        }
     }
 
     public Object getBean(String beanName) {
@@ -219,7 +247,7 @@ public class SpringApplicationContext {
 
             String scope = beanDefinition.getScope();
             if ("singleton".equals(scope)) {
-                return singletonMap.get(beanName);
+                return singletonObjects.get(beanName);
             } else {
                 // 创建一个新Bean对象
                 return createBean(beanName, beanDefinition);
