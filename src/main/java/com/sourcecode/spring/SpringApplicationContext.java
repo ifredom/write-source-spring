@@ -59,17 +59,17 @@ public class SpringApplicationContext {
     public SpringApplicationContext(Class<?> primarySource, Class<?> configClass) {
         this.configClass = configClass;
 
-        scan(configClass);
+        scanBeanDefinition(configClass);
 
         registerBeanPostProcessors();
 
-        init();
+        preInstantiateSingletons();
     }
 
     /**
      * 初始化:实例化所有的单例Bean
      */
-    private void init() {
+    private void preInstantiateSingletons() {
         for (String beanName : beanDefinitionMap.keySet()) {
             BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
             if ("singleton".equals(beanDefinition.getScope())) {
@@ -152,7 +152,7 @@ public class SpringApplicationContext {
      *
      * @param configClass 配置类
      */
-    private void scan(Class<?> configClass) {
+    private void scanBeanDefinition(Class<?> configClass) {
 
         // 1. 传递来的类，是都被扫描注解标记
         ComponentScan componentScanAnnotation = configClass.getAnnotation(ComponentScan.class);
