@@ -66,18 +66,6 @@ public class SpringApplicationContext {
         preInstantiateSingletons();
     }
 
-    /**
-     * 初始化:实例化所有的单例Bean
-     */
-    private void preInstantiateSingletons() {
-        for (String beanName : beanDefinitionMap.keySet()) {
-            BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
-            if ("singleton".equals(beanDefinition.getScope())) {
-                Object beanInstance = createBean(beanName, beanDefinition);
-                singletonObjects.put(beanName, beanInstance);
-            }
-        }
-    }
 
     /**
      * 仿照spring的静态run方法
@@ -91,6 +79,20 @@ public class SpringApplicationContext {
     public static SpringApplicationContext run(Class<?> primarySource, Class<?> configClass, String... args) {
         return new SpringApplicationContext(primarySource, configClass);
     }
+
+    /**
+     * 初始化:实例化所有的单例Bean
+     */
+    private void preInstantiateSingletons() {
+        for (String beanName : beanDefinitionMap.keySet()) {
+            BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
+            if ("singleton".equals(beanDefinition.getScope())) {
+                Object beanInstance = createBean(beanName, beanDefinition);
+                singletonObjects.put(beanName, beanInstance);
+            }
+        }
+    }
+
 
     /**
      * 创建bean
@@ -116,28 +118,8 @@ public class SpringApplicationContext {
                 }
             }
 
-            // 实现BeanName 感知
-            if (instance instanceof BeanNameAware) {
-                ((BeanNameAware) instance).setBeanName(beanName);
-            }
+            instance = initializeBean(beanName, instance);
 
-            // 初始化前，调用前置处理器（Hook）
-            for (BeanPostProcessor beanPostProcessor : beanPostProcessorList) {
-                instance = beanPostProcessor.postProcessBeforeInitialization(instance, beanName);
-            }
-
-            // 初始化属性
-            if (instance instanceof InitializingBean) {
-                try {
-                    ((InitializingBean) instance).afterPropertiesSet();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-            // 初始化后，调用后置处理器（Hook）
-            for (BeanPostProcessor beanPostProcessor : beanPostProcessorList) {
-                instance = beanPostProcessor.postProcessAfterInitialization(instance, beanName);
-            }
 
         } catch (InstantiationException | InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
             e.printStackTrace();
@@ -229,8 +211,8 @@ public class SpringApplicationContext {
                 .stream()
                 .filter((entry) -> BeanPostProcessor.class.isAssignableFrom(entry.getValue().getClazz()))
                 .forEach((entry) -> {
-                    BeanPostProcessor instance = (BeanPostProcessor) getBean(entry.getKey());
-                    beanPostProcessorList.add(instance);
+                    BeanPostProcessor beanPostProcessor = (BeanPostProcessor) getBean(entry.getKey());
+                    beanPostProcessorList.add(beanPostProcessor);
                 });
 
         // 原写法
@@ -239,6 +221,35 @@ public class SpringApplicationContext {
 //            beanPostProcessorList.add(instance);
 //        }
     }
+
+
+    private Object initializeBean(String beanName, Object instance) {
+        // 实现BeanName 感知
+        if (instance instanceof BeanNameAware) {
+            ((BeanNameAware) instance).setBeanName(beanName);
+        }
+
+        // 初始化前，调用前置处理器（Hook）
+        for (BeanPostProcessor beanPostProcessor : beanPostProcessorList) {
+            instance = beanPostProcessor.postProcessBeforeInitialization(instance, beanName);
+        }
+
+        // 初始化属性
+        if (instance instanceof InitializingBean) {
+            try {
+                ((InitializingBean) instance).afterPropertiesSet();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        // 初始化后，调用后置处理器（Hook）
+        for (BeanPostProcessor beanPostProcessor : beanPostProcessorList) {
+            instance = beanPostProcessor.postProcessAfterInitialization(instance, beanName);
+        }
+
+        return instance;
+    }
+
 
     public Object getBean(String beanName) {
         Asset.notNull(beanName);
