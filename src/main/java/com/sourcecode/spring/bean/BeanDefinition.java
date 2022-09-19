@@ -26,12 +26,12 @@ public class BeanDefinition {
         this.scope = scope;
     }
 
-    public boolean isSingleton(String beanName){
-        return "singleton".equals(beanName);
+    public boolean isSingleton(){
+        return "singleton".equals(scope);
     }
 
-    public boolean isPrototype(String beanName){
-        return "prototype".equals(beanName);
+    public boolean isPrototype(){
+        return "prototype".equals(scope);
     }
 
 }

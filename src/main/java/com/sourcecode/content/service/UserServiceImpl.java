@@ -13,7 +13,7 @@ import com.sourcecode.spring.bean.BeanPostProcessor;
  * @Description
  **/
 @Component("userService")
-@Scope("prototype")
+//@Scope("prototype")
 public class UserServiceImpl implements UserService, BeanNameAware, BeanPostProcessor {
 
     @Autowired

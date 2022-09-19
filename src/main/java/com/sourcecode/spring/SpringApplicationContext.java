@@ -37,12 +37,12 @@ public class SpringApplicationContext {
 
 
     /**
-     * 单例池 一级缓存：用于存放完全初始化好的 bean
+     * 单例池 一级缓存：存放初始化完成的 bean
      **/
     private ConcurrentHashMap<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
 
     /**
-     * 二级缓存：存放原始的 bean 对象（尚未填充属性），用于解决循环依赖
+     * 二级缓存：存放原始的 bean 对象（尚未填充属性）
      **/
     private Map<String, Object> earlySingletonObjects = new HashMap<>(16);
 
@@ -51,9 +51,20 @@ public class SpringApplicationContext {
      **/
     private Map<String, ObjectFactory> singletonFactories = new HashMap<>(16);
 
+    /**
+     * bean 配置信息 Map
+     */
     private ConcurrentHashMap<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>();
 
+    /**
+     * 切面处理器
+     **/
     private List<BeanPostProcessor> beanPostProcessorList = new ArrayList<>();
+
+    /**
+     * 保存 处于正在创建中的状态的Bean的名称
+     */
+    private Set<String> singletonsCurrentlyInCreation = Collections.newSetFromMap(new ConcurrentHashMap<>(16));
 
     public SpringApplicationContext(Class<?> primarySource, Class<?> configClass) {
         this.configClass = configClass;
@@ -83,13 +94,12 @@ public class SpringApplicationContext {
      * 初始化:实例化所有的单例Bean
      */
     private void preInstantiateSingletons() {
-        for (String beanName : beanDefinitionMap.keySet()) {
-            BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
-            if ("singleton".equals(beanDefinition.getScope())) {
+        beanDefinitionMap.forEach((beanName, beanDefinition) -> {
+            if (beanDefinition.isSingleton()) {
                 Object beanInstance = createBean(beanName, beanDefinition);
                 singletonObjects.put(beanName, beanInstance);
             }
-        }
+        });
     }
 
 
