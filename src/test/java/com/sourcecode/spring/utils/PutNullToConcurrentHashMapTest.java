@@ -1,12 +1,11 @@
 package com.sourcecode.spring.utils;
 
-import com.sourcecode.content.service.OrderService;
-import com.sourcecode.content.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
+
+import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -17,13 +16,20 @@ import java.util.concurrent.ConcurrentHashMap;
  **/
 public class PutNullToConcurrentHashMapTest {
 
-    private ConcurrentHashMap<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
-
+    private Set<String> singletonsCurrentlyInCreation = Collections.newSetFromMap(new ConcurrentHashMap(16));
 
     @Test
-    private void loadContext() {
-        singletonObjects.put("userService", null);
-        System.out.println(singletonObjects);
+    @DisplayName("测试 ClassLoader 层级关系")
+    void testPutNullToConcurrentHashMap() {
+
+        String beanName = "userService";
+        System.out.println("111111111111");
+        if (!this.singletonsCurrentlyInCreation.add(beanName)) {
+            System.out.println("x");
+        } else {
+            System.out.println("y");
+        }
+        System.out.println("success");
 
     }
 }

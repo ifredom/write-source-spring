@@ -13,7 +13,7 @@ import com.sourcecode.spring.bean.InitializingBean;
  **/
 @Component("orderService")
 //@Scope("prototype")
-public class OrderService implements InitializingBean {
+public class OrderService{
 
     private String var1;
     private String var2;
@@ -21,19 +21,15 @@ public class OrderService implements InitializingBean {
 //    @Autowired
 //    private UserService userService;
 
-    public OrderService(String var1) {
-        this.var1 = var1;
-    }
+//    public OrderService(String var1) {
+//        this.var1 = var1;
+//    }
+//
+//    public OrderService(String var1, String var2) {
+//        this.var1 = var1;
+//        this.var2 = var2;
+//    }
 
-    public OrderService(String var1, String var2) {
-        this.var1 = var1;
-        this.var2 = var2;
-    }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        System.out.println("初始化  === afterPropertiesSet ===");
-    }
 
     @Override
     public String toString() {

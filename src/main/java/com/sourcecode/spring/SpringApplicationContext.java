@@ -96,10 +96,65 @@ public class SpringApplicationContext {
     private void preInstantiateSingletons() {
         beanDefinitionMap.forEach((beanName, beanDefinition) -> {
             if (beanDefinition.isSingleton()) {
-                Object beanInstance = createBean(beanName, beanDefinition);
-                singletonObjects.put(beanName, beanInstance);
+                getBean(beanName);
             }
         });
+    }
+
+    public Object getBean(String beanName) {
+        Asset.notNull(beanName);
+        if (!beanDefinitionMap.containsKey(beanName)) {
+            throw new NullPointerException("没有找到bean：" + beanName);
+        } else {
+            BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
+
+            if (beanDefinition.isSingleton()) {
+                Object singletonObject = getSingleton(beanName, true);
+
+                // 三级缓存中都没有，那么就只能 create
+                if (singletonObject == null) {
+                    singletonObject = createBean(beanName, beanDefinition);
+                    singletonObjects.put(beanName, singletonObject);
+                    earlySingletonObjects.remove(beanName);
+                    singletonFactories.remove(beanName);
+                }
+
+                return singletonObject;
+            } else {
+                // prototype.每次创建新对象
+                return createBean(beanName, beanDefinition);
+            }
+        }
+    }
+
+    /**
+     * 依次尝试从 3 处缓存中取获取单例
+     *
+     * @param beanName bean名字
+     * @return {@link Object}
+     */
+    private Object getSingleton(String beanName, boolean allowEarlyReference) {
+
+        // 从1级获取
+        Object singletonObject = this.singletonObjects.get(beanName);
+
+        if (singletonObject == null && this.isSingletonCurrentlyInCreation(beanName)) {
+
+            // 从2级获取
+            singletonObject = this.earlySingletonObjects.get(beanName);
+
+            if (singletonObject == null && allowEarlyReference) {
+
+                // 从3级获取
+                ObjectFactory singletonFactory = this.singletonFactories.get(beanName);
+                if (singletonFactory != null) {
+                    singletonObject = singletonFactory.getObject();
+                    this.earlySingletonObjects.put(beanName, singletonObject);
+                    this.singletonFactories.remove(beanName);
+                }
+            }
+        }
+        return singletonObject;
     }
 
 
@@ -107,32 +162,63 @@ public class SpringApplicationContext {
      * 创建bean
      *
      * @param beanDefinition bean定义
+     * @param beanName       bean名字
      * @return {@link Object}
      */
     public Object createBean(String beanName, final BeanDefinition beanDefinition) {
-        Class<?> clazz = beanDefinition.getClazz();
-        Object instance = null;
+
+        // 创建中
+        beforeCreation(beanName, beanDefinition);
 
         try {
-            instance = createBeanInstance(beanDefinition);
+            // 创建对象
+            Object instance = createBeanInstance(beanDefinition);
 
-            // 依赖注入 【将bean中使用 Autowired 标记的属性进行赋值】
-            for (Field field : clazz.getDeclaredFields()) {
-                if (field.isAnnotationPresent(Autowired.class)) {
-                    Object bean = getBean(field.getName());
-                    field.setAccessible(true);
-                    field.set(instance, bean);
-                }
+
+            // 如果当前创建的是单例对象，依赖注入前将工厂对象 fa 存入三级缓存 singletonFactories 中
+            if (beanDefinition.isSingleton()) {
+                // ???
             }
+
+
+            populateBean(beanDefinition, instance);
 
             instance = initializeBean(beanName, instance);
 
+            Object exposedObject = instance;
+
+            return exposedObject;
         } catch (Throwable e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
+        } finally {
+            // 创建结束
+            afterCreation(beanName, beanDefinition);
         }
+    }
 
+    /**
+     * 依赖注入
+     * <p>
+     * 填充bean，将bean中使用 Autowired 标记的属性进行赋值
+     *
+     * @param clazz    clazz
+     * @param instance 实例
+     * @throws IllegalAccessException 非法访问异常
+     */
+    private void populateBean(BeanDefinition beanDefinition, Object instance) throws IllegalAccessException {
+        Class<?> clazz = beanDefinition.getClazz();
+        // 解析字段上的 Autowired
+        for (Field field : clazz.getDeclaredFields()) {
+            if (field.isAnnotationPresent(Autowired.class)) {
+                Object bean = getBean(field.getName());
+                field.setAccessible(true);
+                field.set(instance, bean);
+            }
+        }
+    }
 
-        return instance;
+    protected void addSingleton(String beanName, Object singletonObject) {
+
     }
 
     /**
@@ -237,31 +323,28 @@ public class SpringApplicationContext {
      * @param instance 实例
      * @return {@link Object}
      */
-    private Object initializeBean(String beanName, Object instance) {
+    private Object initializeBean(String beanName, Object bean) throws Exception {
         // 0️⃣ 容器感知：各种 Aware 回调
-        if (instance instanceof BeanNameAware) {
-            ((BeanNameAware) instance).setBeanName(beanName);
+        if (bean instanceof BeanNameAware) {
+            ((BeanNameAware) bean).setBeanName(beanName);
         }
 
         // 1️⃣ 初始化前，调用前置处理器（Hook）
         for (BeanPostProcessor beanPostProcessor : beanPostProcessorList) {
-            instance = beanPostProcessor.postProcessBeforeInitialization(instance, beanName);
+            bean = beanPostProcessor.postProcessBeforeInitialization(bean, beanName);
         }
 
-        // 2️⃣ 初始化属性
-        if (instance instanceof InitializingBean) {
-            try {
-                ((InitializingBean) instance).afterPropertiesSet();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        // 2️⃣ 初始化
+        if (bean instanceof InitializingBean) {
+            ((InitializingBean) bean).afterPropertiesSet();
         }
+
         // 3️⃣ 初始化后，调用后置处理器（Hook）
         for (BeanPostProcessor beanPostProcessor : beanPostProcessorList) {
-            instance = beanPostProcessor.postProcessAfterInitialization(instance, beanName);
+            bean = beanPostProcessor.postProcessAfterInitialization(bean, beanName);
         }
 
-        return instance;
+        return bean;
     }
 
 
@@ -308,24 +391,32 @@ public class SpringApplicationContext {
         return constructor.newInstance(args);
     }
 
-    public Object getBean(String beanName) {
-        Asset.notNull(beanName);
-        if (beanDefinitionMap.containsKey(beanName)) {
-            BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
-
-            String scope = beanDefinition.getScope();
-            if ("singleton".equals(scope)) {
-                return singletonObjects.get(beanName);
-            } else {
-                // 创建一个新Bean对象
-                return createBean(beanName, beanDefinition);
-            }
-
-        } else {
-            // 没有这个beanName
-            throw new NullPointerException();
+    private void beforeCreation(String beanName, BeanDefinition beanDefinition) {
+        if (beanDefinition.isSingleton()) {
+            beforeSingletonCreation(beanName);
         }
     }
+
+    private void afterCreation(String beanName, BeanDefinition beanDefinition) {
+        if (beanDefinition.isSingleton()) {
+            afterSingletonCreation(beanName);
+        }
+    }
+
+    private void beforeSingletonCreation(String beanName) {
+        if (!this.singletonsCurrentlyInCreation.add(beanName)) {
+            throw new IllegalStateException("bean" + beanName + "正在创建中，是否存在无法解析的循环引用");
+        }
+    }
+
+    private void afterSingletonCreation(String beanName) {
+        this.singletonsCurrentlyInCreation.remove(beanName);
+    }
+
+    protected Boolean isSingletonCurrentlyInCreation(String beanName) {
+        return this.singletonsCurrentlyInCreation.contains(beanName);
+    }
+
 
     /**
      * 得到类名

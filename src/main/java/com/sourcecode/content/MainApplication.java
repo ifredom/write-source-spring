@@ -16,9 +16,12 @@ public class MainApplication {
         SpringApplicationContext app = SpringApplicationContext.run(MainApplication.class, AppConfig.class);
 
         UserService userService = (UserService) app.getBean("userService");
+        UserService userService2 = (UserService) app.getBean("userService");
 
         userService.test();
 
+        System.out.println(userService);
+        System.out.println(userService2);
         System.out.println("=================");
 
     }
