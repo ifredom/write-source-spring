@@ -18,17 +18,17 @@ public class OrderService{
     private String var1;
     private String var2;
 
-//    @Autowired
-//    private UserService userService;
+    @Autowired
+    private UserService userService;
 
-//    public OrderService(String var1) {
-//        this.var1 = var1;
-//    }
-//
-//    public OrderService(String var1, String var2) {
-//        this.var1 = var1;
-//        this.var2 = var2;
-//    }
+    public OrderService(String var1) {
+        this.var1 = var1;
+    }
+
+    public OrderService(String var1, String var2) {
+        this.var1 = var1;
+        this.var2 = var2;
+    }
 
 
     @Override

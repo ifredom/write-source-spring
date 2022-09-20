@@ -49,7 +49,7 @@ public class SpringApplicationContext {
     /**
      * 三级级缓存：存放 bean 工厂对象，用于解决循环依赖
      **/
-    private Map<String, ObjectFactory> singletonFactories = new HashMap<>(16);
+    private Map<String, ObjectFactory<Object>> singletonFactories = new HashMap<>(16);
 
     /**
      * bean 配置信息 Map
@@ -146,7 +146,7 @@ public class SpringApplicationContext {
             if (singletonObject == null && allowEarlyReference) {
 
                 // 从3级获取
-                ObjectFactory singletonFactory = this.singletonFactories.get(beanName);
+                ObjectFactory<Object> singletonFactory = this.singletonFactories.get(beanName);
                 if (singletonFactory != null) {
                     singletonObject = singletonFactory.getObject();
                     this.earlySingletonObjects.put(beanName, singletonObject);
@@ -174,20 +174,20 @@ public class SpringApplicationContext {
             // 创建对象
             Object instance = createBeanInstance(beanDefinition);
 
-
-            // 如果当前创建的是单例对象，依赖注入前将工厂对象 fa 存入三级缓存 singletonFactories 中
-            if (beanDefinition.isSingleton()) {
-                // ???
+            // 依赖注入前,将工厂对象存入三级缓存 singletonFactories 中
+            boolean earlySingletonExposure = beanDefinition.isSingleton() && isSingletonCurrentlyInCreation(beanName);
+            if (earlySingletonExposure) {
+                //添加三级缓存
+                Object exposedObject = instance;
+                this.singletonFactories.put(beanName, () -> exposedObject);
+                this.earlySingletonObjects.remove(beanName);
             }
-
 
             populateBean(beanDefinition, instance);
 
             instance = initializeBean(beanName, instance);
 
-            Object exposedObject = instance;
-
-            return exposedObject;
+            return instance;
         } catch (Throwable e) {
             throw new RuntimeException(e);
         } finally {
@@ -201,23 +201,36 @@ public class SpringApplicationContext {
      * <p>
      * 填充bean，将bean中使用 Autowired 标记的属性进行赋值
      *
-     * @param clazz    clazz
-     * @param instance 实例
+     * @param beanDefinition bean配置
+     * @param instance       实例
      * @throws IllegalAccessException 非法访问异常
      */
-    private void populateBean(BeanDefinition beanDefinition, Object instance) throws IllegalAccessException {
+    private void populateBean(BeanDefinition beanDefinition, Object instance) throws IllegalAccessException, InvocationTargetException {
         Class<?> clazz = beanDefinition.getClazz();
         // 解析字段上的 Autowired
         for (Field field : clazz.getDeclaredFields()) {
             if (field.isAnnotationPresent(Autowired.class)) {
-                Object bean = getBean(field.getName());
                 field.setAccessible(true);
-                field.set(instance, bean);
+                field.set(instance, field.getName());
+            }
+        }
+        // 解析方法上的 Autowired
+        for (Method method : clazz.getMethods()) {
+            if (method.isAnnotationPresent(Autowired.class)) {
+                // 编译时加上 -parameters 参数才能反射获取到参数名
+                // 或者编译时加上 -g 参数，使用 ASM 获取到参数名
+                String paramName = method.getParameters()[0].getName();
+
+                method.invoke(instance, paramName);
             }
         }
     }
 
     protected void addSingleton(String beanName, Object singletonObject) {
+
+    }
+
+    protected void addSingletonFactory(String beanName, ObjectFactory<?> singletonFactory) {
 
     }
 
@@ -320,7 +333,7 @@ public class SpringApplicationContext {
      * 初始化bean
      *
      * @param beanName bean名字
-     * @param instance 实例
+     * @param bean 实例
      * @return {@link Object}
      */
     private Object initializeBean(String beanName, Object bean) throws Exception {
@@ -427,7 +440,6 @@ public class SpringApplicationContext {
      * @return {@link String}
      */
     public String resolveClassAbsolutePath(String classPath) {
-
         return classPath.substring(classPath.indexOf("com"), classPath.indexOf(".class")).replace("\\", ".");
     }
 }
