@@ -167,27 +167,30 @@ public class SpringApplicationContext {
      */
     public Object createBean(String beanName, final BeanDefinition beanDefinition) {
 
-        // 创建中
+        // 创建开始
         beforeCreation(beanName, beanDefinition);
 
         try {
             // 创建对象
-            Object instance = createBeanInstance(beanDefinition);
+            Object bean = createBeanInstance(beanDefinition);
 
             // 依赖注入前,将工厂对象存入三级缓存 singletonFactories 中
             boolean earlySingletonExposure = beanDefinition.isSingleton() && isSingletonCurrentlyInCreation(beanName);
             if (earlySingletonExposure) {
                 //添加三级缓存
-                Object exposedObject = instance;
-                this.singletonFactories.put(beanName, () -> exposedObject);
+                Object exposedObject = bean;
+                this.singletonFactories.put(beanName, () -> {
+                    // bean实现代理。此处并未实现代理，直接返回的原工厂方法创建的bean
+                    return exposedObject;
+                });
                 this.earlySingletonObjects.remove(beanName);
             }
 
-            populateBean(beanDefinition, instance);
+            populateBean(beanDefinition, bean);
 
-            instance = initializeBean(beanName, instance);
+            bean = initializeBean(beanName, bean);
 
-            return instance;
+            return bean;
         } catch (Throwable e) {
             throw new RuntimeException(e);
         } finally {
@@ -197,9 +200,9 @@ public class SpringApplicationContext {
     }
 
     /**
-     * 依赖注入
+     * 依赖(属性)注入
      * <p>
-     * 填充bean，将bean中使用 Autowired 标记的属性进行赋值
+     * 填充bean，将bean对象中使用 Autowired 标记的属性和方法 进行赋值填充
      *
      * @param beanDefinition bean配置
      * @param instance       实例
@@ -426,6 +429,12 @@ public class SpringApplicationContext {
         this.singletonsCurrentlyInCreation.remove(beanName);
     }
 
+    /**
+     * 目前单例是否正在创建
+     *
+     * @param beanName bean名字
+     * @return {@link Boolean}
+     */
     protected Boolean isSingletonCurrentlyInCreation(String beanName) {
         return this.singletonsCurrentlyInCreation.contains(beanName);
     }
