@@ -179,10 +179,11 @@ public class SpringApplicationContext {
             if (earlySingletonExposure) {
                 //添加三级缓存
                 Object exposedObject = bean;
-                this.singletonFactories.put(beanName, () -> {
-                    // bean实现代理。此处并未实现代理，直接返回的原工厂方法创建的bean
-                    return exposedObject;
-                });
+                this.singletonFactories.put(beanName, () -> exposedObject);
+//                this.singletonFactories.put(beanName, () -> {
+//                    // bean实现代理。此处并未实现代理，直接返回的原工厂方法创建的bean
+//                    return exposedObject;
+//                });
                 this.earlySingletonObjects.remove(beanName);
             }
 
@@ -214,7 +215,7 @@ public class SpringApplicationContext {
         for (Field field : clazz.getDeclaredFields()) {
             if (field.isAnnotationPresent(Autowired.class)) {
                 field.setAccessible(true);
-                field.set(instance, field.getName());
+                field.set(instance, getBean(field.getName()));
             }
         }
         // 解析方法上的 Autowired

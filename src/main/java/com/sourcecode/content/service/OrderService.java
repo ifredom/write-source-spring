@@ -2,8 +2,6 @@ package com.sourcecode.content.service;
 
 import com.sourcecode.spring.annotation.Autowired;
 import com.sourcecode.spring.annotation.Component;
-import com.sourcecode.spring.annotation.Scope;
-import com.sourcecode.spring.bean.InitializingBean;
 
 /**
  * @Author ifredomvip@gmail.com
